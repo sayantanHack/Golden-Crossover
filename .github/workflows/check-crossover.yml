@@ -1,0 +1,119 @@
+# ================================================================
+#  GOLDEN CROSSOVER CHECKER — NIFTY 50
+#  Runs automatically during Indian market hours (Mon-Fri)
+#  Sends FREE push notifications via ntfy.sh
+# ================================================================
+
+name: Check Nifty 50 Golden Crossovers
+
+on:
+  schedule:
+    # ── Times are in UTC. India (IST) = UTC + 5 hours 30 minutes
+    # ── Market opens 9:15 AM IST  = 3:45 AM UTC
+    # ── Market closes 3:30 PM IST = 10:00 AM UTC
+    # ── Runs every 30 minutes during market hours on weekdays
+
+    - cron: '45 3 * * 1-5'    # 9:15 AM IST  — Market Open
+    #- cron: '15 4 * * 1-5'    # 9:45 AM IST
+   # - cron: '45 4 * * 1-5'    # 10:15 AM IST
+   # - cron: '15 5 * * 1-5'    # 10:45 AM IST
+    - cron: '45 5 * * 1-5'    # 11:15 AM IST
+   # - cron: '15 6 * * 1-5'    # 11:45 AM IST
+    - cron: '45 6 * * 1-5'    # 12:15 PM IST
+    # - cron: '15 7 * * 1-5'    # 12:45 PM IST
+    - cron: '45 7 * * 1-5'    # 1:15 PM IST
+    #- cron: '15 8 * * 1-5'    # 1:45 PM IST
+    - cron: '45 8 * * 1-5'    # 2:15 PM IST
+    - cron: '15 9 * * 1-5'    # 2:45 PM IST
+    - cron: '45 9 * * 1-5'    # 3:15 PM IST
+    - cron: '0 10 * * 1-5'    # 3:30 PM IST  — Market Close
+
+  # ── This lets you run it manually anytime from GitHub
+  workflow_dispatch:
+    inputs:
+      force_notify:
+        description: 'Force send notification even if no new crossover'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+# ── Only one job runs at a time (prevents duplicate notifications)
+concurrency:
+  group: crossover-check
+  cancel-in-progress: false
+
+jobs:
+  check-and-notify:
+    name: Check Crossovers and Send Alerts
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+
+      # ── Step 1: Get your code ──────────────────────────────
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      # ── Step 2: Setup Node.js ──────────────────────────────
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # ── Step 3: Create package.json if not exists ──────────
+      - name: Create package.json
+        run: |
+          if [ ! -f package.json ]; then
+            echo '{
+              "name": "nifty-crossover-checker",
+              "version": "1.0.0",
+              "description": "Nifty 50 Golden Crossover Checker",
+              "main": "scripts/check-crossovers.js",
+              "dependencies": {
+                "axios": "^1.6.0"
+              }
+            }' > package.json
+          fi
+
+      # ── Step 4: Install packages ───────────────────────────
+      - name: Install Node Dependencies
+        run: npm install
+
+      # ── Step 5: Create scripts folder if not exists ────────
+      - name: Ensure Directories Exist
+        run: |
+          mkdir -p scripts
+          mkdir -p public
+
+      # ── Step 6: Run the crossover check script ─────────────
+      - name: Run Golden Crossover Check
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          FORCE_NOTIFY: ${{ github.event.inputs.force_notify || 'false' }}
+        run: node scripts/check-crossovers.js
+
+      # ── Step 7: Save the crossover log back to repo ────────
+      - name: Save Crossover Log to Repository
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add crossover-log.json public/crossover-data.json 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "📊 Crossover log update — $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push origin main || echo "Nothing to push"
+
+      # ── Step 8: Show summary in GitHub Actions log ─────────
+      - name: Print Summary
+        run: |
+          echo "✅ Crossover check completed"
+          echo "📅 Time: $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
+          if [ -f crossover-log.json ]; then
+            echo "📊 Log file:"
+            cat crossover-log.json
+          fi
