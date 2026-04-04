@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Nifty 50 Golden Crossover Alert</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-inner">
+      <div class="logo">
+        <span class="logo-icon">📈</span>
+        <span class="logo-text">Golden<span class="gold">Cross</span></span>
+      </div>
+      <div class="market-time" id="marketTime">🟢 Market Live</div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="hero">
+    <h1>Nifty 50 <span class="gold">Golden Crossover</span> Tracker</h1>
+    <p class="subtitle">Real-time 50 MA × 200 MA Crossover Detection</p>
+    <button class="btn-notify" id="notifyBtn" onclick="requestNotificationPermission()">
+      🔔 Enable Alerts
+    </button>
+    <div class="notify-status" id="notifyStatus"></div>
+  </section>
+
+  <!-- LAST UPDATED -->
+  <div class="last-updated" id="lastUpdated">
+    Last updated: --
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <section class="summary-cards">
+    <div class="card card-golden">
+      <div class="card-icon">🥇</div>
+      <div class="card-label">Golden Crossovers</div>
+      <div class="card-value" id="goldenCount">--</div>
+    </div>
+    <div class="card card-death">
+      <div class="card-icon">💀</div>
+      <div class="card-label">Death Crossovers</div>
+      <div class="card-value" id="deathCount">--</div>
+    </div>
+    <div class="card card-bullish">
+      <div class="card-icon">🚀</div>
+      <div class="card-label">Bullish Stocks</div>
+      <div class="card-value" id="bullishCount">--</div>
+    </div>
+    <div class="card card-watch">
+      <div class="card-icon">👀</div>
+      <div class="card-label">Watch Zone</div>
+      <div class="card-value" id="watchCount">--</div>
+    </div>
+  </section>
+
+  <!-- FILTER BAR -->
+  <section class="filter-bar">
+    <button class="filter-btn active" onclick="filterStocks('all', this)">All</button>
+    <button class="filter-btn" onclick="filterStocks('golden', this)">🥇 Golden</button>
+    <button class="filter-btn" onclick="filterStocks('bullish', this)">🚀 Bullish</button>
+    <button class="filter-btn" onclick="filterStocks('watch', this)">👀 Watch Zone</button>
+    <button class="filter-btn" onclick="filterStocks('death', this)">💀 Death Cross</button>
+  </section>
+
+  <!-- SEARCH BAR -->
+  <section class="search-section">
+    <input 
+      type="text" 
+      id="searchInput" 
+      placeholder="🔍 Search stock (e.g. RELIANCE)" 
+      oninput="searchStocks(this.value)"
+      class="search-input"
+    />
+  </section>
+
+  <!-- MAIN TABLE -->
+  <section class="table-section">
+    <div class="table-wrapper">
+      <table class="stock-table" id="stockTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable('name')">Stock ↕</th>
+            <th onclick="sortTable('price')">Price ↕</th>
+            <th onclick="sortTable('ma50')">50 MA ↕</th>
+            <th onclick="sortTable('ma200')">200 MA ↕</th>
+            <th onclick="sortTable('crossoverDate')">Crossover Date ↕</th>
+            <th onclick="sortTable('trend')">Trend Status ↕</th>
+            <th>Signal</th>
+          </tr>
+        </thead>
+        <tbody id="stockTableBody">
+          <!-- Populated by JS -->
+          <tr>
+            <td colspan="7" class="loading-cell">
+              <div class="loading-spinner"></div>
+              <p>Fetching Nifty 50 data...</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- DETAILED CARD VIEW (Mobile-first) -->
+  <section class="cards-view" id="cardsView">
+    <!-- Populated by JS -->
+  </section>
+
+  <!-- CHART MODAL -->
+  <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h2 id="modalTitle">Stock Chart</h2>
+        <button class="close-btn" onclick="closeModal()">✕</button>
+      </div>
+      <div class="modal-body">
+        <canvas id="maChart" width="600" height="300"></canvas>
+        <div class="modal-stats" id="modalStats"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICATION TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <p>📊 Data: Yahoo Finance | ⚡ Refreshes every 15 min during market hours</p>
+    <p>⚠️ For educational purposes only. Not financial advice.</p>
+    <div class="footer-links">
+      <button onclick="refreshData()" class="refresh-btn">🔄 Refresh Now</button>
+      <button onclick="toggleView()" class="view-btn" id="viewToggle">📋 Card View</button>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
