@@ -79,7 +79,7 @@ async function run() {
   }, null, 2));
 
   // ── SEND FREE PUSH NOTIFICATIONS via ntfy.sh ──
-  const topic = process.env.NTFY_TOPIC || 'nifty50-golden-cross-yourname';
+  const topic = process.env.NTFY_TOPIC || 'golden-crossover';
   
   for (const r of newCrossovers) {
     const name = r.symbol.replace('.NS','');
