@@ -1,38 +1,31 @@
 # ================================================================
 #  GOLDEN CROSSOVER CHECKER — NIFTY 50
-#  Runs automatically during Indian market hours (Mon-Fri)
-#  Sends FREE push notifications via ntfy.sh
+#  FIXED VERSION — No lock file dependency
 # ================================================================
 
 name: Check Nifty 50 Golden Crossovers
 
 on:
   schedule:
-    # ── Times are in UTC. India (IST) = UTC + 5 hours 30 minutes
-    # ── Market opens 9:15 AM IST  = 3:45 AM UTC
-    # ── Market closes 3:30 PM IST = 10:00 AM UTC
-    # ── Runs every 30 minutes during market hours on weekdays
-
-    - cron: '45 3 * * 1-5'    # 9:15 AM IST  — Market Open
-    #- cron: '15 4 * * 1-5'    # 9:45 AM IST
-   # - cron: '45 4 * * 1-5'    # 10:15 AM IST
-   # - cron: '15 5 * * 1-5'    # 10:45 AM IST
+    - cron: '45 3 * * 1-5'    # 9:15 AM IST
+    - cron: '15 4 * * 1-5'    # 9:45 AM IST
+    - cron: '45 4 * * 1-5'    # 10:15 AM IST
+    - cron: '15 5 * * 1-5'    # 10:45 AM IST
     - cron: '45 5 * * 1-5'    # 11:15 AM IST
-   # - cron: '15 6 * * 1-5'    # 11:45 AM IST
+    - cron: '15 6 * * 1-5'    # 11:45 AM IST
     - cron: '45 6 * * 1-5'    # 12:15 PM IST
-    # - cron: '15 7 * * 1-5'    # 12:45 PM IST
+    - cron: '15 7 * * 1-5'    # 12:45 PM IST
     - cron: '45 7 * * 1-5'    # 1:15 PM IST
-    #- cron: '15 8 * * 1-5'    # 1:45 PM IST
+    - cron: '15 8 * * 1-5'    # 1:45 PM IST
     - cron: '45 8 * * 1-5'    # 2:15 PM IST
     - cron: '15 9 * * 1-5'    # 2:45 PM IST
     - cron: '45 9 * * 1-5'    # 3:15 PM IST
-    - cron: '0 10 * * 1-5'    # 3:30 PM IST  — Market Close
+    - cron: '0 10 * * 1-5'    # 3:30 PM IST — Market Close
 
-  # ── This lets you run it manually anytime from GitHub
   workflow_dispatch:
     inputs:
       force_notify:
-        description: 'Force send notification even if no new crossover'
+        description: 'Force send test notification'
         required: false
         default: 'false'
         type: choice
@@ -40,7 +33,6 @@ on:
           - 'false'
           - 'true'
 
-# ── Only one job runs at a time (prevents duplicate notifications)
 concurrency:
   group: crossover-check
   cancel-in-progress: false
@@ -49,71 +41,112 @@ jobs:
   check-and-notify:
     name: Check Crossovers and Send Alerts
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+
+    # ── Give permission to write back to repo ──────────────
+    permissions:
+      contents: write
 
     steps:
 
-      # ── Step 1: Get your code ──────────────────────────────
+      # ── STEP 1: Checkout your code ─────────────────────
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          fetch-depth: 0
+          fetch-depth: 1
 
-      # ── Step 2: Setup Node.js ──────────────────────────────
+      # ── STEP 2: Setup Node.js WITHOUT cache ────────────
+      # This is the KEY FIX — removing "cache: npm" 
+      # which was causing the lock file error
       - name: Setup Node.js 20
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+          # DO NOT add "cache: npm" here — that causes the error
 
-      # ── Step 3: Create package.json if not exists ──────────
+      # ── STEP 3: Create package.json ────────────────────
       - name: Create package.json
         run: |
-          if [ ! -f package.json ]; then
-            echo '{
-              "name": "nifty-crossover-checker",
-              "version": "1.0.0",
-              "description": "Nifty 50 Golden Crossover Checker",
-              "main": "scripts/check-crossovers.js",
-              "dependencies": {
-                "axios": "^1.6.0"
-              }
-            }' > package.json
-          fi
+          cat > package.json << 'EOF'
+          {
+            "name": "nifty-crossover-checker",
+            "version": "1.0.0",
+            "description": "Nifty 50 Golden Crossover Checker",
+            "main": "scripts/check-crossovers.js",
+            "dependencies": {
+              "axios": "1.6.8"
+            }
+          }
+          EOF
+          echo "✅ package.json created"
+          cat package.json
 
-      # ── Step 4: Install packages ───────────────────────────
-      - name: Install Node Dependencies
-        run: npm install
-
-      # ── Step 5: Create scripts folder if not exists ────────
-      - name: Ensure Directories Exist
+      # ── STEP 4: Create folders if they don't exist ─────
+      - name: Create Required Folders
         run: |
           mkdir -p scripts
           mkdir -p public
+          echo "✅ Folders ready"
 
-      # ── Step 6: Run the crossover check script ─────────────
+      # ── STEP 5: Install axios WITHOUT lock file ─────────
+      - name: Install Dependencies
+        run: |
+          npm install --no-package-lock
+          echo "✅ Dependencies installed"
+          ls -la node_modules/axios/
+
+      # ── STEP 6: Verify script exists ───────────────────
+      - name: Check Script Exists
+        run: |
+          if [ ! -f "scripts/check-crossovers.js" ]; then
+            echo "❌ ERROR: scripts/check-crossovers.js not found!"
+            echo "Files in scripts folder:"
+            ls -la scripts/ || echo "scripts folder is empty"
+            exit 1
+          else
+            echo "✅ Script found: scripts/check-crossovers.js"
+          fi
+
+      # ── STEP 7: Run the crossover checker ──────────────
       - name: Run Golden Crossover Check
         env:
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           FORCE_NOTIFY: ${{ github.event.inputs.force_notify || 'false' }}
-        run: node scripts/check-crossovers.js
+        run: |
+          echo "🚀 Starting crossover check..."
+          echo "📅 UTC Time: $(date -u)"
+          node scripts/check-crossovers.js
 
-      # ── Step 7: Save the crossover log back to repo ────────
-      - name: Save Crossover Log to Repository
+      # ── STEP 8: Save log files back to repo ────────────
+      - name: Save Updated Log Files
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add crossover-log.json public/crossover-data.json 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "📊 Crossover log update — $(date -u '+%Y-%m-%d %H:%M') UTC"
-          git push origin main || echo "Nothing to push"
-
-      # ── Step 8: Show summary in GitHub Actions log ─────────
-      - name: Print Summary
-        run: |
-          echo "✅ Crossover check completed"
-          echo "📅 Time: $(date -u '+%Y-%m-%d %H:%M:%S') UTC"
-          if [ -f crossover-log.json ]; then
-            echo "📊 Log file:"
-            cat crossover-log.json
+          
+          # Add files only if they exist
+          [ -f crossover-log.json ] && git add crossover-log.json
+          [ -f public/crossover-data.json ] && git add public/crossover-data.json
+          
+          # Only commit if there are changes
+          if git diff --staged --quiet; then
+            echo "ℹ️ No changes to commit"
+          else
+            git commit -m "📊 Crossover update — $(date -u '+%Y-%m-%d %H:%M') UTC"
+            git push origin main
+            echo "✅ Log files pushed to repo"
           fi
+
+      # ── STEP 9: Print job summary ───────────────────────
+      - name: Print Job Summary
+        if: always()
+        run: |
+          echo "## 📊 Crossover Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- ⏰ **Time (UTC):** $(date -u '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+          echo "- 🌏 **Time (IST):** $(TZ='Asia/Kolkata' date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
+          if [ -f crossover-log.json ]; then
+            echo "- 📋 **Log entries:** $(cat crossover-log.json | grep -o '"golden_' | wc -l)" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Job completed" >> $GITHUB_STEP_SUMMARY
