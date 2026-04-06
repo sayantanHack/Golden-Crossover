@@ -1,0 +1,16 @@
+{
+  "name": "nifty-crossover-checker",
+  "version": "1.0.0",
+  "description": "Nifty 50 Golden Crossover Checker for GitHub Actions",
+  "main": "scripts/check-crossovers.js",
+  "scripts": {
+    "check": "node scripts/check-crossovers.js",
+    "test": "echo 'Run workflow_dispatch to test'"
+  },
+  "dependencies": {
+    "axios": "1.6.8"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
