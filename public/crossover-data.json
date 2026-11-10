@@ -1,6 +1,6 @@
 {
-  "updatedUTC": "2026-11-09T20:23:07.098Z",
-  "updatedIST": "Tue, 10 Nov 2026 01:53:07 IST",
+  "updatedUTC": "2026-11-10T11:49:55.379Z",
+  "updatedIST": "Tue, 10 Nov 2026 17:19:55 IST",
   "count": 49,
   "summary": {
     "golden": 1,
@@ -582,7 +582,7 @@
       "maGapPct": -0.074,
       "crossDate": "09 Nov 2026",
       "crossType": "death",
-      "crossDaysAgo": null,
+      "crossDaysAgo": 1,
       "trend": "💀 DEATH CROSS — TODAY!",
       "isGoldenToday": false,
       "isDeathToday": true,
